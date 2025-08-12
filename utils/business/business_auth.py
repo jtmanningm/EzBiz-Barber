@@ -83,8 +83,8 @@ def create_business_session(portal_user_id: int, ip_address: str, user_agent: st
     query = """
     INSERT INTO OPERATIONAL.BARBER.BUSINESS_SESSIONS (
         SESSION_ID, PORTAL_USER_ID, IP_ADDRESS, USER_AGENT,
-        LAST_ACCESSED, EXPIRES_AT, IS_ACTIVE
-    ) VALUES (:1, :2, :3, :4, CURRENT_TIMESTAMP(), :5, TRUE)
+        LOGIN_TIME, LAST_ACTIVITY, EXPIRES_AT, IS_ACTIVE
+    ) VALUES (:1, :2, :3, :4, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), :5, TRUE)
     """
     
     try:
@@ -120,7 +120,7 @@ def verify_business_session(session_id: str) -> Optional[Dict]:
             # Update last activity
             update_query = """
             UPDATE OPERATIONAL.BARBER.BUSINESS_SESSIONS 
-            SET LAST_ACCESSED = CURRENT_TIMESTAMP()
+            SET LAST_ACTIVITY = CURRENT_TIMESTAMP()
             WHERE SESSION_ID = :1
             """
             snowflake_conn.execute_query(update_query, [session_id])

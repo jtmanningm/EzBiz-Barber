@@ -49,7 +49,7 @@ def create_session(portal_user_id: int, ip_address: str, user_agent: str) -> Opt
     query = """
     INSERT INTO OPERATIONAL.BARBER.CUSTOMER_SESSIONS (
         SESSION_ID, PORTAL_USER_ID, IP_ADDRESS, USER_AGENT, 
-        CREATED_AT, LAST_ACCESSED, EXPIRES_AT, IS_ACTIVE
+        LOGIN_TIME, LAST_ACTIVITY, EXPIRES_AT, IS_ACTIVE
     ) 
     SELECT
         :1, :2, :3, :4,
@@ -92,7 +92,7 @@ def validate_session(session_id: str) -> Optional[Dict]:
             # Update last activity
             update_query = """
             UPDATE OPERATIONAL.BARBER.CUSTOMER_SESSIONS
-            SET LAST_ACCESSED = CURRENT_TIMESTAMP()
+            SET LAST_ACTIVITY = CURRENT_TIMESTAMP()
             WHERE SESSION_ID = ?
             """
             snowflake_conn.execute_query(update_query, [session_id])
