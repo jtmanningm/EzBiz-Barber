@@ -9,37 +9,47 @@ from database.connection import snowflake_conn
 
 def check_operating_hours_configured() -> bool:
     """
-    Check if operating hours are configured in the database.
+    Check if operating hours are configured in the database or session state.
     
     Returns:
         bool: True if operating hours are configured, False otherwise
     """
+    # First check session state (for same-session configuration)
+    if st.session_state.get('operating_hours_configured', False):
+        return True
+        
     try:
+        # Check if BUSINESS_INFO table has any records with the required columns
+        # Since BARBER schema may not have operating hours columns yet, we'll use a fallback approach
         query = """
-        SELECT 
-            OPERATING_HOURS_START,
-            OPERATING_HOURS_END
+        SELECT BUSINESS_ID
         FROM OPERATIONAL.BARBER.BUSINESS_INFO
-        WHERE ACTIVE_STATUS = TRUE
-        ORDER BY MODIFIED_DATE DESC
+        ORDER BY MODIFIED_AT DESC
         LIMIT 1
         """
         
         result = snowflake_conn.execute_query(query)
         
-        if not result:
-            return False
-            
-        business_info = result[0]
+        if result:
+            # Try to check for operating hours columns (they may not exist yet)
+            try:
+                hours_query = """
+                SELECT OPERATING_HOURS_START, OPERATING_HOURS_END
+                FROM OPERATIONAL.BARBER.BUSINESS_INFO
+                WHERE BUSINESS_ID = ?
+                """
+                hours_result = snowflake_conn.execute_query(hours_query, [result[0]['BUSINESS_ID']])
+                
+                if hours_result and hours_result[0].get('OPERATING_HOURS_START') and hours_result[0].get('OPERATING_HOURS_END'):
+                    return True
+            except Exception:
+                # Columns don't exist yet, return False
+                pass
         
-        # Check if both start and end times are configured
-        start_time = business_info.get('OPERATING_HOURS_START')
-        end_time = business_info.get('OPERATING_HOURS_END')
-        
-        return start_time is not None and end_time is not None and start_time != '' and end_time != ''
+        return False
         
     except Exception as e:
-        st.error(f"Error checking operating hours: {str(e)}")
+        st.error(f"Error checking business info: {str(e)}")
         return False
 
 
@@ -155,7 +165,15 @@ def display_operating_hours_setup() -> bool:
                 
                 if success:
                     st.success("✅ Business information and operating hours saved successfully!")
-                    st.info("🔄 Please refresh the page to see available time slots.")
+                    # Set a session state flag to indicate operating hours are now configured
+                    st.session_state['operating_hours_configured'] = True
+                    st.session_state['business_hours_data'] = {
+                        'weekday_start': weekday_start,
+                        'weekday_end': weekday_end,
+                        'weekend_start': weekend_start,
+                        'weekend_end': weekend_end
+                    }
+                    st.info("✅ You can now proceed with scheduling below!")
                     return True
                 else:
                     st.error("❌ Failed to save business information. Please try again.")
@@ -167,6 +185,7 @@ def display_operating_hours_setup() -> bool:
 def save_business_info_with_hours(data: Dict[str, Any]) -> bool:
     """
     Save business information with operating hours to the database.
+    Handles case where operating hours columns may not exist yet.
     
     Args:
         data: Dictionary containing business info and operating hours
@@ -178,74 +197,131 @@ def save_business_info_with_hours(data: Dict[str, Any]) -> bool:
         # First check if business info already exists
         check_query = """
         SELECT BUSINESS_ID 
-        FROM OPERATIONAL.BARBER.BUSINESS_INFO 
-        WHERE ACTIVE_STATUS = TRUE
+        FROM OPERATIONAL.BARBER.BUSINESS_INFO
+        ORDER BY MODIFIED_AT DESC
+        LIMIT 1
         """
         
         existing = snowflake_conn.execute_query(check_query)
         
-        if existing:
-            # Update existing record
-            update_query = """
-            UPDATE OPERATIONAL.BARBER.BUSINESS_INFO
-            SET BUSINESS_NAME = ?,
-                PHONE_NUMBER = ?,
-                EMAIL_ADDRESS = ?,
-                STREET_ADDRESS = ?,
-                CITY = ?,
-                STATE = ?,
-                ZIP_CODE = ?,
-                OPERATING_HOURS_START = ?,
-                OPERATING_HOURS_END = ?,
-                WEEKEND_OPERATING_HOURS_START = ?,
-                WEEKEND_OPERATING_HOURS_END = ?,
-                MODIFIED_DATE = CURRENT_TIMESTAMP()
-            WHERE BUSINESS_ID = ?
-            """
+        # Try to save with operating hours columns first, fallback to basic info if columns don't exist
+        try:
+            if existing:
+                # Update existing record with operating hours
+                update_query = """
+                UPDATE OPERATIONAL.BARBER.BUSINESS_INFO
+                SET BUSINESS_NAME = ?,
+                    CONTACT_PHONE = ?,
+                    CONTACT_EMAIL = ?,
+                    ADDRESS_LINE1 = ?,
+                    CITY = ?,
+                    STATE = ?,
+                    ZIP_CODE = ?,
+                    OPERATING_HOURS_START = ?,
+                    OPERATING_HOURS_END = ?,
+                    WEEKEND_OPERATING_HOURS_START = ?,
+                    WEEKEND_OPERATING_HOURS_END = ?,
+                    ACTIVE_STATUS = TRUE,
+                    MODIFIED_AT = CURRENT_TIMESTAMP()
+                WHERE BUSINESS_ID = ?
+                """
+                
+                params = [
+                    data['business_name'],
+                    data['phone_number'], 
+                    data['email_address'],
+                    data['street_address'],
+                    data['city'],
+                    data['state'],
+                    data['zip_code'],
+                    data['weekday_start'].isoformat(),
+                    data['weekday_end'].isoformat(),
+                    data['weekend_start'].isoformat(),
+                    data['weekend_end'].isoformat(),
+                    existing[0]['BUSINESS_ID']
+                ]
+                
+            else:
+                # Insert new record with operating hours
+                update_query = """
+                INSERT INTO OPERATIONAL.BARBER.BUSINESS_INFO (
+                    BUSINESS_NAME, CONTACT_PHONE, CONTACT_EMAIL,
+                    ADDRESS_LINE1, CITY, STATE, ZIP_CODE,
+                    OPERATING_HOURS_START, OPERATING_HOURS_END,
+                    WEEKEND_OPERATING_HOURS_START, WEEKEND_OPERATING_HOURS_END,
+                    ACTIVE_STATUS, CREATED_AT, MODIFIED_AT
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())
+                """
+                
+                params = [
+                    data['business_name'],
+                    data['phone_number'],
+                    data['email_address'], 
+                    data['street_address'],
+                    data['city'],
+                    data['state'],
+                    data['zip_code'],
+                    data['weekday_start'].isoformat(),
+                    data['weekday_end'].isoformat(),
+                    data['weekend_start'].isoformat(),
+                    data['weekend_end'].isoformat()
+                ]
             
-            params = [
-                data['business_name'],
-                data['phone_number'], 
-                data['email_address'],
-                data['street_address'],
-                data['city'],
-                data['state'],
-                data['zip_code'],
-                data['weekday_start'].isoformat(),
-                data['weekday_end'].isoformat(),
-                data['weekend_start'].isoformat(),
-                data['weekend_end'].isoformat(),
-                existing[0]['BUSINESS_ID']
-            ]
+            snowflake_conn.execute_query(update_query, params)
+            return True
             
-        else:
-            # Insert new record
-            update_query = """
-            INSERT INTO OPERATIONAL.BARBER.BUSINESS_INFO (
-                BUSINESS_NAME, PHONE_NUMBER, EMAIL_ADDRESS,
-                STREET_ADDRESS, CITY, STATE, ZIP_CODE,
-                OPERATING_HOURS_START, OPERATING_HOURS_END,
-                WEEKEND_OPERATING_HOURS_START, WEEKEND_OPERATING_HOURS_END,
-                ACTIVE_STATUS, MODIFIED_DATE
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, CURRENT_TIMESTAMP())
-            """
+        except Exception as hours_error:
+            # Operating hours columns don't exist, save basic business info only
+            st.warning("⚠️ Operating hours columns don't exist in database. Saving basic business info only.")
             
-            params = [
-                data['business_name'],
-                data['phone_number'],
-                data['email_address'], 
-                data['street_address'],
-                data['city'],
-                data['state'],
-                data['zip_code'],
-                data['weekday_start'].isoformat(),
-                data['weekday_end'].isoformat(),
-                data['weekend_start'].isoformat(),
-                data['weekend_end'].isoformat()
-            ]
-        
-        snowflake_conn.execute_query(update_query, params)
-        return True
+            if existing:
+                # Update existing record without operating hours
+                fallback_query = """
+                UPDATE OPERATIONAL.BARBER.BUSINESS_INFO
+                SET BUSINESS_NAME = ?,
+                    CONTACT_PHONE = ?,
+                    CONTACT_EMAIL = ?,
+                    ADDRESS_LINE1 = ?,
+                    CITY = ?,
+                    STATE = ?,
+                    ZIP_CODE = ?,
+                    MODIFIED_AT = CURRENT_TIMESTAMP()
+                WHERE BUSINESS_ID = ?
+                """
+                
+                fallback_params = [
+                    data['business_name'],
+                    data['phone_number'],
+                    data['email_address'],
+                    data['street_address'],
+                    data['city'],
+                    data['state'],
+                    data['zip_code'],
+                    existing[0]['BUSINESS_ID']
+                ]
+            else:
+                # Insert new record without operating hours
+                fallback_query = """
+                INSERT INTO OPERATIONAL.BARBER.BUSINESS_INFO (
+                    BUSINESS_NAME, CONTACT_PHONE, CONTACT_EMAIL,
+                    ADDRESS_LINE1, CITY, STATE, ZIP_CODE,
+                    CREATED_AT, MODIFIED_AT
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())
+                """
+                
+                fallback_params = [
+                    data['business_name'],
+                    data['phone_number'],
+                    data['email_address'],
+                    data['street_address'],
+                    data['city'],
+                    data['state'],
+                    data['zip_code']
+                ]
+            
+            snowflake_conn.execute_query(fallback_query, fallback_params)
+            st.info("💡 Business info saved. Operating hours are stored in session for this scheduling session.")
+            return True
         
     except Exception as e:
         st.error(f"Database error: {str(e)}")
@@ -254,7 +330,7 @@ def save_business_info_with_hours(data: Dict[str, Any]) -> bool:
 
 def get_business_hours_for_date(service_date) -> Tuple[time, time]:
     """
-    Get business hours for a specific date from database.
+    Get business hours for a specific date from database or session state.
     Fallback to defaults if not configured.
     
     Args:
@@ -263,7 +339,18 @@ def get_business_hours_for_date(service_date) -> Tuple[time, time]:
     Returns:
         Tuple of (start_time, end_time) for business hours
     """
+    # First check session state for operating hours (for same-session configuration)
+    if st.session_state.get('business_hours_data'):
+        hours_data = st.session_state['business_hours_data']
+        is_weekend = service_date.weekday() >= 5
+        
+        if is_weekend:
+            return hours_data['weekend_start'], hours_data['weekend_end']
+        else:
+            return hours_data['weekday_start'], hours_data['weekday_end']
+    
     try:
+        # Try to get from database (may fail if columns don't exist)
         business_hours_query = """
         SELECT 
             OPERATING_HOURS_START,
@@ -271,8 +358,7 @@ def get_business_hours_for_date(service_date) -> Tuple[time, time]:
             WEEKEND_OPERATING_HOURS_START,
             WEEKEND_OPERATING_HOURS_END
         FROM OPERATIONAL.BARBER.BUSINESS_INFO
-        WHERE ACTIVE_STATUS = TRUE
-        ORDER BY MODIFIED_DATE DESC
+        ORDER BY MODIFIED_AT DESC
         LIMIT 1
         """
         
@@ -295,16 +381,13 @@ def get_business_hours_for_date(service_date) -> Tuple[time, time]:
             try:
                 business_start = time.fromisoformat(str(start_time_str)) if start_time_str else time(8, 0)
                 business_end = time.fromisoformat(str(end_time_str)) if end_time_str else time(17, 0)
+                return business_start, business_end
             except (ValueError, TypeError):
-                business_start = time(8, 0)  # Default 8 AM
-                business_end = time(17, 0)   # Default 5 PM
-        else:
-            # Fallback to defaults if no business hours found
-            business_start = time(8, 0)  # Default 8 AM
-            business_end = time(17, 0)   # Default 5 PM
-            
-        return business_start, business_end
+                pass
+        
+        # Fallback to defaults if no business hours found or parsing failed
+        return time(8, 0), time(17, 0)
         
     except Exception as e:
-        # Fallback to defaults
+        # Database query failed (likely columns don't exist), fallback to defaults
         return time(8, 0), time(17, 0)

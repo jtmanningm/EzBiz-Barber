@@ -1804,15 +1804,15 @@ def new_service_page():
                     # Check if operating hours are configured
                     from utils.operating_hours import check_operating_hours_configured, display_operating_hours_setup
                     
-                    if not check_operating_hours_configured():
+                    operating_hours_configured = check_operating_hours_configured()
+                    
+                    if not operating_hours_configured:
                         # Show operating hours setup if not configured
                         operating_hours_configured = display_operating_hours_setup()
-                        if not operating_hours_configured:
-                            # If operating hours not configured yet, don't continue with scheduling
-                            selected_time = None
-                        else:
-                            # Rerun the page to refresh with new operating hours
-                            st.rerun()
+                    
+                    if not operating_hours_configured:
+                        # If operating hours still not configured, don't continue with scheduling
+                        selected_time = None
                     else:
                         # Operating hours are configured, proceed with normal scheduling
                         # Date selection

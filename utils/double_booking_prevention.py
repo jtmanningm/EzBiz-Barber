@@ -9,6 +9,7 @@ from datetime import datetime, date, time, timedelta
 from typing import List, Tuple, Optional, Dict, Any
 from database.connection import SnowflakeConnection
 from utils.business.info import fetch_business_info
+from utils.operating_hours import get_business_hours_for_date as get_hours_with_session_support
 
 # Initialize database connection
 snowflake_conn = SnowflakeConnection.get_instance()
@@ -44,7 +45,7 @@ class BookingConflict:
 
 def get_business_hours_for_date(service_date: date) -> Tuple[time, time]:
     """
-    Get business hours for a specific date from database.
+    Get business hours for a specific date using session-aware function.
     
     Args:
         service_date: Date to check business hours for
@@ -52,52 +53,8 @@ def get_business_hours_for_date(service_date: date) -> Tuple[time, time]:
     Returns:
         Tuple of (start_time, end_time) for business hours
     """
-    try:
-        business_hours_query = """
-        SELECT 
-            OPERATING_HOURS_START,
-            OPERATING_HOURS_END,
-            WEEKEND_OPERATING_HOURS_START,
-            WEEKEND_OPERATING_HOURS_END
-        FROM OPERATIONAL.BARBER.BUSINESS_INFO
-        WHERE ACTIVE_STATUS = TRUE
-        ORDER BY MODIFIED_DATE DESC
-        LIMIT 1
-        """
-        
-        business_hours_result = snowflake_conn.execute_query(business_hours_query)
-        
-        if business_hours_result:
-            business_info = business_hours_result[0]
-            # Check if it's weekend (Saturday = 5, Sunday = 6)
-            is_weekend = service_date.weekday() >= 5
-            
-            # Get appropriate hours based on weekday/weekend
-            if is_weekend:
-                start_time_str = business_info.get('WEEKEND_OPERATING_HOURS_START')
-                end_time_str = business_info.get('WEEKEND_OPERATING_HOURS_END')
-            else:
-                start_time_str = business_info.get('OPERATING_HOURS_START')
-                end_time_str = business_info.get('OPERATING_HOURS_END')
-            
-            # Parse time strings, fallback to defaults if parsing fails
-            try:
-                business_start = time.fromisoformat(str(start_time_str)) if start_time_str else time(8, 0)
-                business_end = time.fromisoformat(str(end_time_str)) if end_time_str else time(17, 0)
-            except (ValueError, TypeError):
-                business_start = time(8, 0)  # Default 8 AM
-                business_end = time(17, 0)   # Default 5 PM
-        else:
-            # Fallback to defaults if no business hours found
-            business_start = time(8, 0)  # Default 8 AM
-            business_end = time(17, 0)   # Default 5 PM
-            
-        return business_start, business_end
-        
-    except Exception as e:
-        debug_print(f"Error fetching business hours: {str(e)}")
-        # Fallback to defaults
-        return time(8, 0), time(17, 0)
+    # Use the session-aware function from operating_hours module
+    return get_hours_with_session_support(service_date)
 
 def get_service_duration(service_names: List[str]) -> int:
     """
