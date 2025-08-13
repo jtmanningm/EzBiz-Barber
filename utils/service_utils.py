@@ -168,7 +168,7 @@ def display_create_service_form(key_suffix: str = "") -> Optional[Dict[str, Any]
             )
             customer_bookable = st.checkbox(
                 "Customer Bookable",
-                value=False,
+                value=True,
                 help="Allow customers to book this service through the customer portal"
             )
         

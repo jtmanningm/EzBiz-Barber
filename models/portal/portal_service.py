@@ -21,11 +21,11 @@ class PortalServiceModel:
         return cls(
             service_id=row['SERVICE_ID'],
             service_name=row['SERVICE_NAME'],
-            service_description=row.get('SERVICE_DESCRIPTION'),
+            service_description=row.get('SERVICE_DESCRIPTION', ''),
             cost=float(row['COST']),
             duration=row['SERVICE_DURATION'],
-            deposit_required=row.get('DEPOSIT_REQUIRED', False),
-            deposit_amount=float(row.get('DEPOSIT_AMOUNT', 0)),
+            deposit_required=False,  # Simplified for now - can be enhanced later
+            deposit_amount=0.0,      # Simplified for now - can be enhanced later  
             service_category=row.get('SERVICE_CATEGORY', '')
         )
 
@@ -39,9 +39,8 @@ def get_available_services() -> List[PortalServiceModel]:
         SERVICE_CATEGORY,
         COST,
         SERVICE_DURATION,
-        DEPOSIT_REQUIRED,
-        DEPOSIT_AMOUNT
-    FROM SERVICES
+        CUSTOMER_BOOKABLE
+    FROM OPERATIONAL.BARBER.SERVICES
     WHERE ACTIVE_STATUS = TRUE
     AND CUSTOMER_BOOKABLE = TRUE
     ORDER BY SERVICE_CATEGORY, SERVICE_NAME
@@ -59,7 +58,7 @@ def get_available_time_slots(service_id: int, date: datetime.date) -> List[time]
         # Get service duration
         duration_query = """
         SELECT SERVICE_DURATION 
-        FROM SERVICES 
+        FROM OPERATIONAL.BARBER.SERVICES 
         WHERE SERVICE_ID = :1
         AND ACTIVE_STATUS = TRUE
         AND CUSTOMER_BOOKABLE = TRUE
@@ -73,7 +72,7 @@ def get_available_time_slots(service_id: int, date: datetime.date) -> List[time]
         # Get booked slots
         bookings_query = """
         SELECT START_TIME, SERVICE_DURATION
-        FROM SERVICE_TRANSACTION
+        FROM OPERATIONAL.BARBER.SERVICE_TRANSACTION
         WHERE SERVICE_DATE = :1
         AND STATUS = 'SCHEDULED'
         ORDER BY START_TIME
