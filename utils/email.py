@@ -44,8 +44,8 @@ def log_email(
     try:
         query = """
         INSERT INTO OPERATIONAL.BARBER.EMAIL_LOGS (
-            EMAIL_TO,
-            EMAIL_SUBJECT,
+            RECIPIENT_EMAIL,
+            SUBJECT,
             EMAIL_TYPE,
             STATUS,
             ERROR_MESSAGE
