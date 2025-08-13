@@ -1453,7 +1453,10 @@ class ServiceScheduler:
                 notes=service_data['notes'],
                 is_recurring=service_data['is_recurring'],
                 recurrence_pattern=service_data['recurrence_pattern'],
-                customer_data=self.form_data.customer_data
+                customer_data=self.form_data.customer_data,
+                employee1_id=self.form_data.service_schedule.get('employee1_id'),
+                employee2_id=self.form_data.service_schedule.get('employee2_id'),
+                employee3_id=self.form_data.service_schedule.get('employee3_id')
             )
             if not transaction_id:
                 st.error("Failed to schedule service")
@@ -1863,7 +1866,42 @@ def new_service_page():
                             'time': selected_time
                         }
                         
+                        # Employee Assignment Section
+                        st.markdown("---")
+                        st.header("👥 Employee Assignment")
+                        st.info("💡 Assign employees to this service. You can create new employees if they don't exist yet.")
+                        
+                        from utils.employee_utils import display_employee_selector_with_creation
+                        
+                        col1, col2, col3 = st.columns(3)
+                        
+                        with col1:
+                            employee1_id = display_employee_selector_with_creation(
+                                key_suffix="primary", 
+                                required=False
+                            )
+                        
+                        with col2:
+                            employee2_id = display_employee_selector_with_creation(
+                                key_suffix="secondary", 
+                                required=False
+                            )
+                        
+                        with col3:
+                            employee3_id = display_employee_selector_with_creation(
+                                key_suffix="tertiary", 
+                                required=False
+                            )
+                        
+                        # Store employee assignments in form data
+                        scheduler.form_data.service_schedule.update({
+                            'employee1_id': employee1_id,
+                            'employee2_id': employee2_id,
+                            'employee3_id': employee3_id
+                        })
+                        
                         # Final submission
+                        st.markdown("---")
                         col1, col2, col3 = st.columns([1, 1, 1])
                         with col2:
                             if st.button("📋 Schedule Service", type="primary", use_container_width=True):

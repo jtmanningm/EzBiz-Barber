@@ -196,7 +196,10 @@ def save_service_schedule(
     notes: Optional[str] = None,
     is_recurring: bool = False,
     recurrence_pattern: Optional[str] = None,
-    customer_data: Optional[Dict[str, Any]] = None
+    customer_data: Optional[Dict[str, Any]] = None,
+    employee1_id: Optional[int] = None,
+    employee2_id: Optional[int] = None,
+    employee3_id: Optional[int] = None
 ) -> bool:
     """Save service schedule and create initial transaction record with enhanced double booking prevention."""
     try:
@@ -274,8 +277,11 @@ def save_service_schedule(
             DEPOSIT_PAID,
             BASE_SERVICE_COST,
             AMOUNT,
-            STATUS
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE, ?, ?, 'SCHEDULED')
+            STATUS,
+            EMPLOYEE1_ID,
+            EMPLOYEE2_ID,
+            EMPLOYEE3_ID
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE, ?, ?, 'SCHEDULED', ?, ?, ?)
         """
         
         # Get address ID from customer data if available
@@ -298,7 +304,10 @@ def save_service_schedule(
             notes,
             safe_deposit,
             safe_base_cost,
-            safe_total_cost
+            safe_total_cost,
+            employee1_id,
+            employee2_id,
+            employee3_id
         ]
 
         # Debug logging for params
