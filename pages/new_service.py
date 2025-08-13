@@ -1159,9 +1159,13 @@ class ServiceScheduler:
             services_df = fetch_services()
             debug_print(f"Services DataFrame shape: {services_df.shape if not services_df.empty else 'empty'}")
             
+            # Show create service option even when no services exist
             if services_df.empty:
-                st.error("No services available")
-                return False
+                st.warning("No services found in the database. Please add services first.")
+                # Still allow service creation when no services exist
+                services_list = []
+            else:
+                services_list = services_df['SERVICE_NAME'].tolist()
             if 'service_costs' not in st.session_state:
                 st.session_state.service_costs = {}
             
@@ -1174,9 +1178,10 @@ class ServiceScheduler:
             with col1:
                 selected_services = st.multiselect(
                     "Select Services",
-                    options=services_df['SERVICE_NAME'].tolist(),
+                    options=services_list,
                     default=st.session_state.get('selected_services', []),
-                    key="services_select"
+                    key="services_select",
+                    help="Select existing services or create a new one using the button on the right"
                 )
             
             with col2:
@@ -1218,6 +1223,14 @@ class ServiceScheduler:
             st.session_state.selected_services = selected_services
             self.form_data.service_selection['selected_services'] = selected_services
 
+            # Show service creation prompt if no services are available or selected
+            if not selected_services and not st.session_state.show_create_service:
+                if services_df.empty:
+                    st.info("💡 Click **'➕ Create New Service'** above to add your first service to the database.")
+                else:
+                    st.info("💡 Please select at least one service or create a new one.")
+                return False
+            
             if selected_services:
                 # Re-fetch services to ensure newly created services are included
                 current_services_df = fetch_services()
