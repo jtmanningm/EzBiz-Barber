@@ -24,7 +24,7 @@ def check_operating_hours_configured() -> bool:
         query = """
         SELECT BUSINESS_ID
         FROM OPERATIONAL.BARBER.BUSINESS_INFO
-        ORDER BY MODIFIED_AT DESC
+        ORDER BY MODIFIED_DATE DESC
         LIMIT 1
         """
         
@@ -198,7 +198,7 @@ def save_business_info_with_hours(data: Dict[str, Any]) -> bool:
         check_query = """
         SELECT BUSINESS_ID 
         FROM OPERATIONAL.BARBER.BUSINESS_INFO
-        ORDER BY MODIFIED_AT DESC
+        ORDER BY MODIFIED_DATE DESC
         LIMIT 1
         """
         
@@ -211,9 +211,9 @@ def save_business_info_with_hours(data: Dict[str, Any]) -> bool:
                 update_query = """
                 UPDATE OPERATIONAL.BARBER.BUSINESS_INFO
                 SET BUSINESS_NAME = ?,
-                    CONTACT_PHONE = ?,
-                    CONTACT_EMAIL = ?,
-                    ADDRESS_LINE1 = ?,
+                    PHONE_NUMBER = ?,
+                    EMAIL_ADDRESS = ?,
+                    STREET_ADDRESS = ?,
                     CITY = ?,
                     STATE = ?,
                     ZIP_CODE = ?,
@@ -222,7 +222,7 @@ def save_business_info_with_hours(data: Dict[str, Any]) -> bool:
                     WEEKEND_OPERATING_HOURS_START = ?,
                     WEEKEND_OPERATING_HOURS_END = ?,
                     ACTIVE_STATUS = TRUE,
-                    MODIFIED_AT = CURRENT_TIMESTAMP()
+                    MODIFIED_DATE = CURRENT_TIMESTAMP()
                 WHERE BUSINESS_ID = ?
                 """
                 
@@ -245,11 +245,11 @@ def save_business_info_with_hours(data: Dict[str, Any]) -> bool:
                 # Insert new record with operating hours
                 update_query = """
                 INSERT INTO OPERATIONAL.BARBER.BUSINESS_INFO (
-                    BUSINESS_NAME, CONTACT_PHONE, CONTACT_EMAIL,
-                    ADDRESS_LINE1, CITY, STATE, ZIP_CODE,
+                    BUSINESS_NAME, PHONE_NUMBER, EMAIL_ADDRESS,
+                    STREET_ADDRESS, CITY, STATE, ZIP_CODE,
                     OPERATING_HOURS_START, OPERATING_HOURS_END,
                     WEEKEND_OPERATING_HOURS_START, WEEKEND_OPERATING_HOURS_END,
-                    ACTIVE_STATUS, CREATED_AT, MODIFIED_AT
+                    ACTIVE_STATUS, CREATED_DATE, MODIFIED_DATE
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())
                 """
                 
@@ -279,13 +279,13 @@ def save_business_info_with_hours(data: Dict[str, Any]) -> bool:
                 fallback_query = """
                 UPDATE OPERATIONAL.BARBER.BUSINESS_INFO
                 SET BUSINESS_NAME = ?,
-                    CONTACT_PHONE = ?,
-                    CONTACT_EMAIL = ?,
-                    ADDRESS_LINE1 = ?,
+                    PHONE_NUMBER = ?,
+                    EMAIL_ADDRESS = ?,
+                    STREET_ADDRESS = ?,
                     CITY = ?,
                     STATE = ?,
                     ZIP_CODE = ?,
-                    MODIFIED_AT = CURRENT_TIMESTAMP()
+                    MODIFIED_DATE = CURRENT_TIMESTAMP()
                 WHERE BUSINESS_ID = ?
                 """
                 
@@ -303,9 +303,9 @@ def save_business_info_with_hours(data: Dict[str, Any]) -> bool:
                 # Insert new record without operating hours
                 fallback_query = """
                 INSERT INTO OPERATIONAL.BARBER.BUSINESS_INFO (
-                    BUSINESS_NAME, CONTACT_PHONE, CONTACT_EMAIL,
-                    ADDRESS_LINE1, CITY, STATE, ZIP_CODE,
-                    CREATED_AT, MODIFIED_AT
+                    BUSINESS_NAME, PHONE_NUMBER, EMAIL_ADDRESS,
+                    STREET_ADDRESS, CITY, STATE, ZIP_CODE,
+                    CREATED_DATE, MODIFIED_DATE
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())
                 """
                 
@@ -358,7 +358,7 @@ def get_business_hours_for_date(service_date) -> Tuple[time, time]:
             WEEKEND_OPERATING_HOURS_START,
             WEEKEND_OPERATING_HOURS_END
         FROM OPERATIONAL.BARBER.BUSINESS_INFO
-        ORDER BY MODIFIED_AT DESC
+        ORDER BY MODIFIED_DATE DESC
         LIMIT 1
         """
         
