@@ -1801,46 +1801,60 @@ def new_service_page():
                 with st.container():
                     st.header("📅 Schedule Service")
                     
-                    # Date selection
-                    min_date = datetime.now().date()
-                    selected_date = st.date_input(
-                        "Service Date",
-                        min_value=min_date,
-                        value=min_date,
-                        key="service_date"
-                    )
+                    # Check if operating hours are configured
+                    from utils.operating_hours import check_operating_hours_configured, display_operating_hours_setup
                     
-                    # Get available time slots for selected services
-                    try:
-                        selected_services = scheduler.form_data.service_selection.get('selected_services', [])
-                        
-                        # If no services selected yet, use default service for time slot calculation
-                        if not selected_services:
-                            selected_services = ["Standard Service"]
-                        
-                        available_slots = get_available_time_slots(selected_date, selected_services)
-                        
-                        if available_slots:
-                            time_options = [slot.strftime('%I:%M %p') for slot in available_slots]
-                            selected_time_str = st.selectbox(
-                                "Available Time Slots",
-                                options=time_options,
-                                key="service_time"
-                            )
-                            
-                            # Convert back to time object
-                            if selected_time_str:
-                                selected_time = datetime.strptime(selected_time_str, '%I:%M %p').time()
-                            else:
-                                selected_time = None
-                        else:
-                            st.warning("No available time slots for the selected date. Please choose a different date.")
+                    if not check_operating_hours_configured():
+                        # Show operating hours setup if not configured
+                        operating_hours_configured = display_operating_hours_setup()
+                        if not operating_hours_configured:
+                            # If operating hours not configured yet, don't continue with scheduling
                             selected_time = None
-                    except Exception as e:
-                        st.error(f"Error loading time slots: {str(e)}")
-                        if st.session_state.get('debug_mode'):
-                            st.exception(e)
-                        selected_time = None
+                        else:
+                            # Rerun the page to refresh with new operating hours
+                            st.rerun()
+                    else:
+                        # Operating hours are configured, proceed with normal scheduling
+                        # Date selection
+                        min_date = datetime.now().date()
+                        selected_date = st.date_input(
+                            "Service Date",
+                            min_value=min_date,
+                            value=min_date,
+                            key="service_date"
+                        )
+                        
+                        # Get available time slots for selected services
+                        try:
+                            selected_services = scheduler.form_data.service_selection.get('selected_services', [])
+                            
+                            # If no services selected yet, use default service for time slot calculation
+                            if not selected_services:
+                                selected_services = ["Standard Service"]
+                            
+                            available_slots = get_available_time_slots(selected_date, selected_services)
+                            
+                            if available_slots:
+                                time_options = [slot.strftime('%I:%M %p') for slot in available_slots]
+                                selected_time_str = st.selectbox(
+                                    "Available Time Slots",
+                                    options=time_options,
+                                    key="service_time"
+                                )
+                                
+                                # Convert back to time object
+                                if selected_time_str:
+                                    selected_time = datetime.strptime(selected_time_str, '%I:%M %p').time()
+                                else:
+                                    selected_time = None
+                            else:
+                                st.warning("No available time slots for the selected date. Please choose a different date.")
+                                selected_time = None
+                        except Exception as e:
+                            st.error(f"Error loading time slots: {str(e)}")
+                            if st.session_state.get('debug_mode'):
+                                st.exception(e)
+                            selected_time = None
                     
                     # Store in form data and show submission button only if we have a valid time
                     if selected_time:
