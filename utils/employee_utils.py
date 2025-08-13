@@ -101,22 +101,21 @@ def create_employee(employee_data: Dict[str, Any]) -> Optional[int]:
         return None
 
 
-def display_employee_selector_with_creation(key_suffix: str = "", required: bool = False) -> Optional[int]:
+def display_employee_multiselect_with_creation(key_suffix: str = "") -> List[int]:
     """
-    Display employee selector with option to create new employee.
+    Display employee multi-selector with option to create new employees.
     
     Args:
         key_suffix: Suffix for unique session state keys
-        required: Whether employee selection is required
         
     Returns:
-        Selected employee ID or None
+        List of selected employee IDs
     """
     # Get existing employees
     employees = get_all_employees()
     
-    # Create options list
-    employee_options = ["None"]
+    # Create options list for multiselect
+    employee_options = []
     employee_map = {}
     
     if employees:
@@ -129,8 +128,6 @@ def display_employee_selector_with_creation(key_suffix: str = "", required: bool
             employee_options.append(display_name)
             employee_map[display_name] = emp['EMPLOYEE_ID']
     
-    employee_options.append("+ Create New Employee")
-    
     # Initialize session state for employee creation
     create_key = f'show_create_employee_{key_suffix}'
     if create_key not in st.session_state:
@@ -139,20 +136,18 @@ def display_employee_selector_with_creation(key_suffix: str = "", required: bool
     col1, col2 = st.columns([3, 1])
     
     with col1:
-        selected_employee = st.selectbox(
-            f"Assign Employee {'*' if required else ''}",
+        selected_employees = st.multiselect(
+            "Assign Employees",
             options=employee_options,
-            key=f"employee_select_{key_suffix}",
-            help="Select an employee to assign to this service"
+            default=st.session_state.get(f'selected_employees_{key_suffix}', []),
+            key=f"employees_multiselect_{key_suffix}",
+            help="Select employees to assign to this service or create new ones using the button on the right"
         )
     
     with col2:
-        if selected_employee == "+ Create New Employee":
+        if st.button("➕ Create New Employee", use_container_width=True, key=f"create_employee_btn_{key_suffix}", help="Create a new employee if they're not in the list"):
             st.session_state[create_key] = True
-        elif st.session_state[create_key]:
-            if st.button("Cancel", key=f"cancel_employee_{key_suffix}", use_container_width=True):
-                st.session_state[create_key] = False
-                st.rerun()
+            st.rerun()
     
     # Handle employee creation
     if st.session_state[create_key]:
@@ -251,23 +246,29 @@ def display_employee_selector_with_creation(key_suffix: str = "", required: bool
                         new_employee_id = create_employee(employee_data)
                         
                         if new_employee_id:
-                            # Reset the form and return to selection
+                            # Reset the form and automatically add to selection
                             st.session_state[create_key] = False
-                            st.info("🔄 Employee created! Please reselect from the dropdown above.")
+                            # Get the new employee's display name and add to selection
+                            new_display_name = f"{first_name.strip()} {last_name.strip()} ({job_title})"
+                            current_selections = selected_employees.copy()
+                            current_selections.append(new_display_name)
+                            st.session_state[f'selected_employees_{key_suffix}'] = current_selections
+                            st.info("🔄 Employee created and added to selection!")
                             st.rerun()
         
         # Don't continue while creating employee
-        return None
+        return []
     
-    # Return selected employee ID
-    if selected_employee == "None":
-        return None
-    elif selected_employee == "+ Create New Employee":
-        return None
-    elif selected_employee in employee_map:
-        return employee_map[selected_employee]
-    else:
-        return None
+    # Store current selection in session state
+    st.session_state[f'selected_employees_{key_suffix}'] = selected_employees
+    
+    # Return selected employee IDs
+    selected_ids = []
+    for employee_name in selected_employees:
+        if employee_name in employee_map:
+            selected_ids.append(employee_map[employee_name])
+    
+    return selected_ids
 
 
 def get_employee_display_name(employee_id: int) -> str:

@@ -1871,33 +1871,28 @@ def new_service_page():
                         st.header("👥 Employee Assignment")
                         st.info("💡 Assign employees to this service. You can create new employees if they don't exist yet.")
                         
-                        from utils.employee_utils import display_employee_selector_with_creation
+                        from utils.employee_utils import display_employee_multiselect_with_creation
                         
-                        col1, col2, col3 = st.columns(3)
+                        # Get selected employee IDs using multiselect
+                        selected_employee_ids = display_employee_multiselect_with_creation(
+                            key_suffix="service_scheduling"
+                        )
                         
-                        with col1:
-                            employee1_id = display_employee_selector_with_creation(
-                                key_suffix="primary", 
-                                required=False
-                            )
+                        # Limit to 3 employees maximum and assign to individual slots
+                        employee1_id = selected_employee_ids[0] if len(selected_employee_ids) > 0 else None
+                        employee2_id = selected_employee_ids[1] if len(selected_employee_ids) > 1 else None
+                        employee3_id = selected_employee_ids[2] if len(selected_employee_ids) > 2 else None
                         
-                        with col2:
-                            employee2_id = display_employee_selector_with_creation(
-                                key_suffix="secondary", 
-                                required=False
-                            )
-                        
-                        with col3:
-                            employee3_id = display_employee_selector_with_creation(
-                                key_suffix="tertiary", 
-                                required=False
-                            )
+                        # Show warning if more than 3 employees selected
+                        if len(selected_employee_ids) > 3:
+                            st.warning("⚠️ Only the first 3 selected employees will be assigned to this service.")
                         
                         # Store employee assignments in form data
                         scheduler.form_data.service_schedule.update({
                             'employee1_id': employee1_id,
                             'employee2_id': employee2_id,
-                            'employee3_id': employee3_id
+                            'employee3_id': employee3_id,
+                            'selected_employee_count': len(selected_employee_ids[:3])
                         })
                         
                         # Final submission
