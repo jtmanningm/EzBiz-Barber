@@ -110,6 +110,61 @@ def create_customer(
         st.error(f"Error creating customer: {str(e)}")
         return None
 
+def create_default_service_address(customer_id: int) -> Optional[int]:
+    """Create default service address from customer billing address if it doesn't exist"""
+    try:
+        # Check if customer already has service addresses
+        check_query = """
+        SELECT COUNT(*) as address_count 
+        FROM OPERATIONAL.BARBER.SERVICE_ADDRESSES 
+        WHERE CUSTOMER_ID = ?
+        """
+        result = snowflake_conn.execute_query(check_query, [customer_id])
+        if result and result[0]['ADDRESS_COUNT'] > 0:
+            return None  # Customer already has service addresses
+        
+        # Get billing address from customer
+        billing_query = """
+        SELECT BILLING_ADDRESS, BILLING_CITY, BILLING_STATE, BILLING_ZIP
+        FROM OPERATIONAL.BARBER.CUSTOMER
+        WHERE CUSTOMER_ID = ?
+        """
+        result = snowflake_conn.execute_query(billing_query, [customer_id])
+        if not result:
+            return None
+        
+        billing = result[0]
+        if not any([billing['BILLING_ADDRESS'], billing['BILLING_CITY'], 
+                   billing['BILLING_STATE'], billing['BILLING_ZIP']]):
+            return None  # No billing address to copy
+        
+        # Create service address from billing address
+        service_address_query = """
+        INSERT INTO OPERATIONAL.BARBER.SERVICE_ADDRESSES (
+            CUSTOMER_ID, STREET_ADDRESS, CITY, STATE, ZIP_CODE, IS_PRIMARY_SERVICE
+        ) VALUES (?, ?, ?, ?, ?, TRUE)
+        """
+        snowflake_conn.execute_query(service_address_query, [
+            customer_id, 
+            billing['BILLING_ADDRESS'], 
+            billing['BILLING_CITY'],
+            billing['BILLING_STATE'], 
+            billing['BILLING_ZIP']
+        ])
+        
+        # Get the created address ID
+        get_id_query = """
+        SELECT ADDRESS_ID FROM OPERATIONAL.BARBER.SERVICE_ADDRESSES
+        WHERE CUSTOMER_ID = ? 
+        ORDER BY ADDRESS_ID DESC LIMIT 1
+        """
+        result = snowflake_conn.execute_query(get_id_query, [customer_id])
+        return result[0]['ADDRESS_ID'] if result else None
+        
+    except Exception as e:
+        st.error(f"Error creating default service address: {str(e)}")
+        return None
+
 def register_portal_user(customer_id: int, email: str, password_hash: str) -> Optional[int]:
     """Create a new portal user and return the portal user ID"""
     portal_query = """
@@ -296,6 +351,9 @@ def register_customer_page():
                     return
                 
                 portal_user_id = result[0]['PORTAL_USER_ID']
+
+                # Create default service address from billing address
+                create_default_service_address(customer_id)
 
                 # Create initial session
                 session_id = create_session(portal_user_id, client_ip, user_agent)
