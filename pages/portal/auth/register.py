@@ -278,15 +278,23 @@ def register_customer_page():
                 )
                 VALUES (?, ?, ?, TRUE)
                 """
-                snowflake_conn.execute_query(portal_query, [
+                portal_result = snowflake_conn.execute_query(portal_query, [
                     customer_id, email, hash_password(password)
                 ])
+                
+                if portal_result is None:
+                    st.error("Failed to create portal user account. Please contact support.")
+                    return
                 
                 # Get portal user ID
                 result = snowflake_conn.execute_query(
                     "SELECT PORTAL_USER_ID FROM OPERATIONAL.BARBER.CUSTOMER_PORTAL_USERS WHERE CUSTOMER_ID = ?",
                     [customer_id]
                 )
+                if not result:
+                    st.error("Failed to retrieve portal user information. Please try logging in.")
+                    return
+                
                 portal_user_id = result[0]['PORTAL_USER_ID']
 
                 # Create initial session
