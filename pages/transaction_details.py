@@ -1182,45 +1182,197 @@ def display_employee_assignment_dialog(transaction_id: int) -> None:
                 for emp in available_employees
             }
             
-            with st.form("assign_employee_form"):
-                selected_employee_name = st.selectbox(
-                    "Select Employee:",
-                    options=list(employee_options.keys()),
-                    index=0
-                )
+            # Option to choose between existing or new employee
+            assignment_mode = st.radio(
+                "Assignment Options:",
+                ["Assign Existing Employee", "Create New Employee"],
+                key="assignment_mode"
+            )
+            
+            if assignment_mode == "Assign Existing Employee":
+                with st.form("assign_employee_form"):
+                    selected_employee_name = st.selectbox(
+                        "Select Employee:",
+                        options=list(employee_options.keys()),
+                        index=0
+                    )
+                    
+                    assignment_notes = st.text_area(
+                        "Assignment Notes (optional):",
+                        placeholder="Any specific notes about this assignment..."
+                    )
+                    
+                    # Assignment buttons
+                    col_assign, col_close = st.columns(2)
+                    with col_assign:
+                        if st.form_submit_button("✅ Assign Employee", type="primary", use_container_width=True):
+                            if selected_employee_name:
+                                employee_id = employee_options[selected_employee_name]
+                                # Ensure employee_id is an integer, not a dict
+                                if isinstance(employee_id, dict):
+                                    employee_id = employee_id.get('EMPLOYEE_ID')
+                                employee_id = int(employee_id)
+                                if assign_employee_to_transaction(transaction_id, employee_id, assignment_notes):
+                                    st.success(f"Employee {selected_employee_name} assigned successfully!")
+                                    st.session_state.show_employee_assign = None
+                                    st.rerun()
+                    
+                    with col_close:
+                        if st.form_submit_button("❌ Cancel", use_container_width=True):
+                            st.session_state.show_employee_assign = None
+                            st.rerun()
+            
+            else:  # Create New Employee
+                st.markdown("**Create New Employee:**")
+                with st.form("create_new_employee_form"):
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        new_first_name = st.text_input("First Name*", key="new_emp_first_avail")
+                        new_last_name = st.text_input("Last Name*", key="new_emp_last_avail")
+                        new_email = st.text_input("Email", key="new_emp_email_avail")
+                    
+                    with col2:
+                        new_phone = st.text_input("Phone Number", key="new_emp_phone_avail")
+                        new_job_title = st.text_input("Job Title", value="Barber", key="new_emp_job_avail")
+                        new_hourly_rate = st.number_input("Hourly Rate ($)", value=25.00, min_value=0.0, step=0.50, key="new_emp_rate_avail")
+                    
+                    assignment_notes = st.text_area(
+                        "Assignment Notes (optional):",
+                        placeholder="Any specific notes about this assignment...",
+                        key="new_emp_notes_avail"
+                    )
+                    
+                    # Create and assign buttons
+                    col_create, col_cancel = st.columns(2)
+                    
+                    with col_create:
+                        if st.form_submit_button("✅ Create & Assign Employee", type="primary", use_container_width=True):
+                            if new_first_name and new_last_name:
+                                # Create the employee
+                                new_employee_id = create_employee_from_transaction(
+                                    new_first_name, new_last_name, new_email, new_phone, 
+                                    new_job_title, new_hourly_rate
+                                )
+                                
+                                if new_employee_id:
+                                    # Immediately assign to transaction
+                                    if assign_employee_to_transaction(transaction_id, new_employee_id, assignment_notes):
+                                        st.success(f"Employee {new_first_name} {new_last_name} created and assigned successfully!")
+                                        st.session_state.show_employee_assign = None
+                                        st.rerun()
+                                    else:
+                                        st.error("Employee created but assignment failed")
+                                else:
+                                    st.error("Failed to create employee")
+                            else:
+                                st.error("First Name and Last Name are required")
+                    
+                    with col_cancel:
+                        if st.form_submit_button("❌ Cancel", use_container_width=True):
+                            st.session_state.show_employee_assign = None
+                            st.rerun()
+        else:
+            st.info("All available employees are already assigned to this transaction")
+            
+            # Add option to create new employee
+            st.markdown("---")
+            st.markdown("**Create New Employee:**")
+            
+            with st.form("create_employee_form"):
+                col1, col2 = st.columns(2)
                 
-                assignment_notes = st.text_area(
-                    "Assignment Notes (optional):",
-                    placeholder="Any specific notes about this assignment..."
-                )
+                with col1:
+                    new_first_name = st.text_input("First Name*", key="new_emp_first")
+                    new_last_name = st.text_input("Last Name*", key="new_emp_last")
+                    new_email = st.text_input("Email", key="new_emp_email")
                 
-                # Assignment buttons
-                col_assign, col_close = st.columns(2)
-                with col_assign:
-                    if st.form_submit_button("✅ Assign Employee", type="primary", use_container_width=True):
-                        if selected_employee_name:
-                            employee_id = employee_options[selected_employee_name]
-                            # Ensure employee_id is an integer, not a dict
-                            if isinstance(employee_id, dict):
-                                employee_id = employee_id.get('EMPLOYEE_ID')
-                            employee_id = int(employee_id)
-                            if assign_employee_to_transaction(transaction_id, employee_id, assignment_notes):
-                                st.success(f"Employee {selected_employee_name} assigned successfully!")
-                                st.session_state.show_employee_assign = None
-                                st.rerun()
+                with col2:
+                    new_phone = st.text_input("Phone Number", key="new_emp_phone")
+                    new_job_title = st.text_input("Job Title", value="Barber", key="new_emp_job")
+                    new_hourly_rate = st.number_input("Hourly Rate ($)", value=25.00, min_value=0.0, step=0.50, key="new_emp_rate")
                 
-                with col_close:
+                col_create, col_cancel = st.columns(2)
+                
+                with col_create:
+                    if st.form_submit_button("✅ Create & Assign Employee", type="primary", use_container_width=True):
+                        if new_first_name and new_last_name:
+                            # Create the employee
+                            new_employee_id = create_employee_from_transaction(
+                                new_first_name, new_last_name, new_email, new_phone, 
+                                new_job_title, new_hourly_rate
+                            )
+                            
+                            if new_employee_id:
+                                # Immediately assign to transaction
+                                if assign_employee_to_transaction(transaction_id, new_employee_id, "Newly created employee"):
+                                    st.success(f"Employee {new_first_name} {new_last_name} created and assigned successfully!")
+                                    st.session_state.show_employee_assign = None
+                                    st.rerun()
+                                else:
+                                    st.error("Employee created but assignment failed")
+                            else:
+                                st.error("Failed to create employee")
+                        else:
+                            st.error("First Name and Last Name are required")
+                
+                with col_cancel:
                     if st.form_submit_button("❌ Cancel", use_container_width=True):
                         st.session_state.show_employee_assign = None
                         st.rerun()
-        else:
-            st.info("All available employees are already assigned to this transaction")
+                        
+            # Original close button
+            st.markdown("---")
             if st.button("❌ Close", use_container_width=True):
                 st.session_state.show_employee_assign = None
                 st.rerun()
                 
     except Exception as e:
         st.error(f"Error loading employees: {str(e)}")
+
+def create_employee_from_transaction(first_name: str, last_name: str, email: str = "", 
+                                   phone: str = "", job_title: str = "Barber", 
+                                   hourly_rate: float = 25.00) -> Optional[int]:
+    """Create a new employee and return the employee ID"""
+    conn = SnowflakeConnection.get_instance()
+    
+    query = """
+    INSERT INTO OPERATIONAL.BARBER.EMPLOYEE (
+        FIRST_NAME, LAST_NAME, EMAIL, PHONE_NUMBER, JOB_TITLE, 
+        HOURLY_RATE, STATUS, IS_ACTIVE, HIRE_DATE
+    ) VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', TRUE, CURRENT_DATE())
+    """
+    
+    try:
+        # Execute insertion
+        result = conn.execute_query(query, [
+            first_name.strip(), 
+            last_name.strip(), 
+            email.strip() if email else None,
+            phone.strip() if phone else None,
+            job_title.strip() if job_title else "Barber",
+            float(hourly_rate)
+        ])
+        
+        if result and len(result) > 0:
+            # Get the newly created employee ID
+            get_id_query = """
+            SELECT EMPLOYEE_ID 
+            FROM OPERATIONAL.BARBER.EMPLOYEE 
+            WHERE FIRST_NAME = ? AND LAST_NAME = ? 
+            ORDER BY EMPLOYEE_ID DESC 
+            LIMIT 1
+            """
+            
+            id_result = conn.execute_query(get_id_query, [first_name.strip(), last_name.strip()])
+            if id_result:
+                return id_result[0]['EMPLOYEE_ID']
+        
+        return None
+        
+    except Exception as e:
+        st.error(f"Error creating employee: {str(e)}")
+        return None
 
 def assign_employee_to_transaction(transaction_id: int, employee_id: int, notes: str = "") -> bool:
     """Assign an employee to a transaction"""
