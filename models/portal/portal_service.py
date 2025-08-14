@@ -127,10 +127,10 @@ def get_upcoming_services(customer_id: int) -> List[Dict[str, Any]]:
         IS_RECURRING,
         RECURRENCE_PATTERN,
         COMMENTS
-    FROM SERVICE_TRANSACTION
+    FROM OPERATIONAL.BARBER.SERVICE_TRANSACTION
     WHERE CUSTOMER_ID = :1
     AND SERVICE_DATE >= CURRENT_DATE()
-    AND STATUS = 'SCHEDULED'
+    AND STATUS IN ('SCHEDULED', 'PENDING')
     ORDER BY SERVICE_DATE, START_TIME
     """
     try:
@@ -157,7 +157,7 @@ def save_booking(
             COST,
             DEPOSIT_REQUIRED,
             DEPOSIT_AMOUNT
-        FROM SERVICES
+        FROM OPERATIONAL.BARBER.SERVICES
         WHERE SERVICE_ID = :1
         AND ACTIVE_STATUS = TRUE
         AND CUSTOMER_BOOKABLE = TRUE
@@ -169,7 +169,7 @@ def save_booking(
             
         # Save booking
         booking_query = """
-        INSERT INTO SERVICE_TRANSACTION (
+        INSERT INTO OPERATIONAL.BARBER.SERVICE_TRANSACTION (
             SERVICE_ID,
             CUSTOMER_ID,
             SERVICE_NAME,

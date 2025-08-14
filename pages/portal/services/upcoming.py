@@ -24,10 +24,10 @@ def upcoming_services_page():
             RECURRENCE_PATTERN,
             COMMENTS,
             STATUS
-        FROM SERVICE_TRANSACTION
+        FROM OPERATIONAL.BARBER.SERVICE_TRANSACTION
         WHERE CUSTOMER_ID = ?
         AND SERVICE_DATE >= CURRENT_DATE()
-        AND STATUS IN ('SCHEDULED', 'CANCELLED')
+        AND STATUS IN ('SCHEDULED', 'PENDING', 'CANCELLED')
         ORDER BY SERVICE_DATE, START_TIME
         """
                 
@@ -88,7 +88,7 @@ def upcoming_services_page():
                             # Restart the service
                             try:
                                 update_query = """
-                                UPDATE SERVICE_TRANSACTION
+                                UPDATE OPERATIONAL.BARBER.SERVICE_TRANSACTION
                                 SET STATUS = 'SCHEDULED',
                                     COMMENTS = COALESCE(COMMENTS || ' | ', '') || 'Service restarted by customer on ' || CURRENT_DATE(),
                                     LAST_MODIFIED_DATE = CURRENT_TIMESTAMP()
@@ -162,9 +162,9 @@ def upcoming_services_page():
                 SELECT 
                     START_TIME,
                     SERVICE_DURATION
-                FROM SERVICE_TRANSACTION
+                FROM OPERATIONAL.BARBER.SERVICE_TRANSACTION
                 WHERE SERVICE_DATE = ?
-                AND STATUS = 'SCHEDULED'
+                AND STATUS IN ('SCHEDULED', 'PENDING')
                 ORDER BY START_TIME
                 """
                 
@@ -214,7 +214,7 @@ def upcoming_services_page():
                         try:
                             # Update service
                             update_query = """
-                            UPDATE SERVICE_TRANSACTION
+                            UPDATE OPERATIONAL.BARBER.SERVICE_TRANSACTION
                             SET 
                                 SERVICE_DATE = ?,
                                 START_TIME = ?,
@@ -258,7 +258,7 @@ def upcoming_services_page():
                 try:
                     # Update notes
                     update_query = """
-                    UPDATE SERVICE_TRANSACTION
+                    UPDATE OPERATIONAL.BARBER.SERVICE_TRANSACTION
                     SET 
                         COMMENTS = ?,
                         LAST_MODIFIED_DATE = CURRENT_TIMESTAMP()
@@ -306,7 +306,7 @@ def upcoming_services_page():
                     try:
                         # Update service status
                         update_query = """
-                        UPDATE SERVICE_TRANSACTION
+                        UPDATE OPERATIONAL.BARBER.SERVICE_TRANSACTION
                         SET 
                             STATUS = 'CANCELLED',
                             COMMENTS = ?,

@@ -116,7 +116,7 @@ class CompletedServicesPage:
             ST.SERVICE_NAME as SERVICE1_NAME,
             S2.SERVICE_NAME as SERVICE2_NAME,
             S3.SERVICE_NAME as SERVICE3_NAME,
-            ST.SERVICE_DATE as TRANSACTION_DATE,
+            ST.SERVICE_DATE,
             ST.START_TIME,
             ST.END_TIME,
             CAST(ST.AMOUNT AS FLOAT) AS AMOUNT,
@@ -239,7 +239,7 @@ class CompletedServicesPage:
                 'customer_name': row['CUSTOMER_NAME'],
                 'customer_email': row['EMAIL_ADDRESS'],
                 'service_type': "Past Service",
-                'date': row['TRANSACTION_DATE'].strftime('%Y-%m-%d'),
+                'date': row['SERVICE_DATE'].strftime('%Y-%m-%d'),
                 'time': '',
                 'total_cost': balance_due,
                 'amount_received': 0,
@@ -498,7 +498,7 @@ class CompletedServicesPage:
             {row['CUSTOMER_NAME']}
             
             Service Information:
-            Date: {row['TRANSACTION_DATE'].strftime('%Y-%m-%d')}
+            Date: {row['SERVICE_DATE'].strftime('%Y-%m-%d')}
             Services Provided:
             {chr(10).join(f'- {service}' for service in services_list)}
             

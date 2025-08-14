@@ -168,10 +168,10 @@ def generate_service_invoice(transaction_id: int) -> None:
             b.STATE as BUSINESS_STATE,
             b.ZIP_CODE as BUSINESS_ZIP,
             b.PHONE_NUMBER as BUSINESS_PHONE
-        FROM SERVICE_TRANSACTION t
-        JOIN CUSTOMER c 
+        FROM OPERATIONAL.BARBER.SERVICE_TRANSACTION t
+        JOIN OPERATIONAL.BARBER.CUSTOMER c 
             ON t.CUSTOMER_ID = c.CUSTOMER_ID
-        CROSS JOIN BUSINESS_INFO b
+        CROSS JOIN OPERATIONAL.BARBER.BUSINESS_INFO b
         WHERE t.ID = ?
         """
         

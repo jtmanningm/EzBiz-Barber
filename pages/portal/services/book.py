@@ -81,8 +81,8 @@ def handle_recurring_bookings(service, base_date, time_slot, address_id, custome
         CUSTOMER_ID,
         ADDRESS_ID,
         PYMT_MTHD_1,
-        TRANSACTION_DATE,
-        TRANSACTION_TIME,
+        SERVICE_DATE,
+        START_TIME,
         AMOUNT,
         DEPOSIT,
         START_TIME,
@@ -98,8 +98,8 @@ def handle_recurring_bookings(service, base_date, time_slot, address_id, custome
         :2,                -- CUSTOMER_ID
         :3,                -- ADDRESS_ID
         NULL,              -- PYMT_MTHD_1
-        :4,                -- TRANSACTION_DATE
-        :5,                -- TRANSACTION_TIME
+        :4,                -- SERVICE_DATE
+        :5,                -- START_TIME
         :6,                -- AMOUNT
         0,                 -- DEPOSIT
         :7,                -- START_TIME
@@ -139,8 +139,8 @@ def handle_recurring_bookings(service, base_date, time_slot, address_id, custome
         service['SERVICE_ID'],           # SERVICE_ID
         customer_id,                     # CUSTOMER_ID
         address_id,                      # ADDRESS_ID
-        current_date,                    # TRANSACTION_DATE
-        time_slot,                       # TRANSACTION_TIME
+        current_date,                    # SERVICE_DATE
+        time_slot,                       # START_TIME
         float(service['COST']),          # AMOUNT
         time_slot,                       # START_TIME
         end_time,                        # END_TIME
@@ -603,8 +603,8 @@ def book_service_page():
                         CUSTOMER_ID,
                         ADDRESS_ID,
                         PYMT_MTHD_1,
-                        TRANSACTION_DATE,
-                        TRANSACTION_TIME,
+                        SERVICE_DATE,
+                        START_TIME,
                         AMOUNT,
                         DEPOSIT,
                         START_TIME,
@@ -621,8 +621,8 @@ def book_service_page():
                         :2,                -- CUSTOMER_ID
                         :3,                -- ADDRESS_ID
                         NULL,              -- PYMT_MTHD_1
-                        :4,                -- TRANSACTION_DATE
-                        :5,                -- TRANSACTION_TIME
+                        :4,                -- SERVICE_DATE
+                        :5,                -- START_TIME
                         :6,                -- AMOUNT
                         0,                 -- DEPOSIT
                         :7,                -- START_TIME
@@ -642,8 +642,8 @@ def book_service_page():
                         service['SERVICE_ID'],                   # SERVICE_ID
                         st.session_state.customer_id,           # CUSTOMER_ID
                         address_id,                             # ADDRESS_ID
-                        st.session_state.selected_date,         # TRANSACTION_DATE
-                        st.session_state.selected_time,         # TRANSACTION_TIME
+                        st.session_state.selected_date,         # SERVICE_DATE
+                        st.session_state.selected_time,         # START_TIME
                         float(service['COST']),                 # AMOUNT
                         st.session_state.selected_time,         # START_TIME
                         end_time,                               # END_TIME

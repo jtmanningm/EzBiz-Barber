@@ -39,7 +39,7 @@ class TransactionModel:
             customer_id=data.get('CUSTOMER_ID', 0),
             amount=data.get('AMOUNT', 0.0),
             payment_type=data.get('PAYMENT_TYPE', 'Cash'),
-            transaction_date=data.get('TRANSACTION_DATE', datetime.now()),
+            transaction_date=data.get('SERVICE_DATE', datetime.now()),
             status=data.get('STATUS', 'Pending'),
             notes=data.get('NOTES'),
             is_deposit=data.get('IS_DEPOSIT', False)
@@ -298,14 +298,14 @@ def fetch_service_transactions(service_id: int) -> pd.DataFrame:
     query = f"""
     SELECT 
         t.ID as TRANSACTION_ID, t.AMOUNT, t.PYMT_MTHD_1 as PAYMENT_TYPE,
-        t.TRANSACTION_DATE, t.STATUS, t.COMMENTS as NOTES,
+        t.SERVICE_DATE as TRANSACTION_DATE, t.STATUS, t.COMMENTS as NOTES,
         t.DEPOSIT as IS_DEPOSIT,
         c.FIRST_NAME, c.LAST_NAME
     FROM OPERATIONAL.BARBER.SERVICE_TRANSACTION t
     JOIN OPERATIONAL.BARBER.CUSTOMER c 
         ON t.CUSTOMER_ID = c.CUSTOMER_ID
     WHERE t.SERVICE_ID = {service_id}
-    ORDER BY t.TRANSACTION_DATE DESC
+    ORDER BY t.SERVICE_DATE DESC
     """
     result = snowflake_conn.execute_query(query)
     if result:
@@ -350,7 +350,7 @@ def get_transaction_summary(start_date: datetime, end_date: datetime) -> Dict[st
         COALESCE(SUM(AMOUNT), 0) as TOTAL_AMOUNT,
         COALESCE(SUM(CASE WHEN STATUS = 'COMPLETED' THEN AMOUNT ELSE 0 END), 0) as COMPLETED_AMOUNT
     FROM OPERATIONAL.BARBER.SERVICE_TRANSACTION
-    WHERE TRANSACTION_DATE BETWEEN '{start_date.strftime('%Y-%m-%d')}' AND '{end_date.strftime('%Y-%m-%d')}'
+    WHERE SERVICE_DATE BETWEEN '{start_date.strftime('%Y-%m-%d')}' AND '{end_date.strftime('%Y-%m-%d')}'
     """
     result = snowflake_conn.execute_query(query)
     if result:

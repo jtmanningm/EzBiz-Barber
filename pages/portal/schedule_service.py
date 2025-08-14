@@ -264,12 +264,12 @@ def schedule_service_page():
                                     IS_RECURRING,
                                     RECURRENCE_PATTERN,
                                     COMMENTS,
-                                    TRANSACTION_DATE,
+                                    SERVICE_DATE,
                                     CREATED_DATE,
                                     BASE_SERVICE_COST
                                 )
                                 VALUES (
-                                    ?, ?, ?, ?, ?, ?, 'PENDING',
+                                    ?, ?, ?, ?, ?, ?, 'SCHEDULED',
                                     ?, FALSE,
                                     ?, ?, ?,
                                     CURRENT_DATE(),
