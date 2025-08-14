@@ -800,9 +800,14 @@ def display_employee_assignment_dialog(transaction: Dict[str, Any]) -> None:
                 with col2:
                     if selected_employee_name:
                         selected_employee = employee_options[selected_employee_name]
+                        # Ensure selected_employee is properly accessed
+                        if isinstance(selected_employee, dict):
+                            hourly_rate_value = selected_employee.get('HOURLY_RATE', 25.0)
+                        else:
+                            hourly_rate_value = 25.0  # Default value
                         hourly_rate = st.number_input(
                             "Hourly Rate Override",
-                            value=float(selected_employee.get('HOURLY_RATE', 25.0)),
+                            value=float(hourly_rate_value),
                             min_value=0.0,
                             step=0.25,
                             key="assign_hourly_rate",
@@ -814,10 +819,15 @@ def display_employee_assignment_dialog(transaction: Dict[str, Any]) -> None:
                 with col_assign:
                     if st.button("✅ Assign Employee", type="primary", use_container_width=True):
                         if selected_employee_name:
+                            # Ensure employee_id is an integer, not a dict
+                            employee_id = selected_employee['EMPLOYEE_ID']
+                            if isinstance(employee_id, dict):
+                                employee_id = employee_id.get('EMPLOYEE_ID')
+                            employee_id = int(employee_id)
                             if assign_employee_to_service(
                                 transaction['TRANSACTION_ID'],
                                 service_id,
-                                selected_employee['EMPLOYEE_ID'],
+                                employee_id,
                                 hourly_rate
                             ):
                                 st.success(f"Assigned {selected_employee_name}!")
