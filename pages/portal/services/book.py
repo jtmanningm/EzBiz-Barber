@@ -85,10 +85,8 @@ def handle_recurring_bookings(service, base_date, time_slot, address_id, custome
         START_TIME,
         AMOUNT,
         DEPOSIT,
-        START_TIME,
         END_TIME,
         STATUS,
-        SERVICE_DATE,
         IS_RECURRING,
         RECURRENCE_PATTERN,
         COMMENTS,
@@ -102,14 +100,12 @@ def handle_recurring_bookings(service, base_date, time_slot, address_id, custome
         :5,                -- START_TIME
         :6,                -- AMOUNT
         0,                 -- DEPOSIT
-        :7,                -- START_TIME
-        :8,                -- END_TIME
+        :7,                -- END_TIME
         'SCHEDULED',       -- STATUS
-        :9,                -- SERVICE_DATE
         TRUE,              -- IS_RECURRING
-        :10,               -- RECURRENCE_PATTERN
-        :11,               -- COMMENTS
-        :12                -- SERVICE_NAME
+        :8,                -- RECURRENCE_PATTERN
+        :9,                -- COMMENTS
+        :10               -- SERVICE_NAME
     )
     """
     
@@ -142,13 +138,10 @@ def handle_recurring_bookings(service, base_date, time_slot, address_id, custome
         current_date,                    # SERVICE_DATE
         time_slot,                       # START_TIME
         float(service['COST']),          # AMOUNT
-        time_slot,                       # START_TIME
         end_time,                        # END_TIME
-        current_date,                    # SERVICE_DATE
         pattern,                         # RECURRENCE_PATTERN
         notes,                           # COMMENTS
-        service['SERVICE_NAME'],         # SERVICE_NAME
-        float(service['COST'])           # BASE_SERVICE_COST
+        service['SERVICE_NAME']          # SERVICE_NAME
     ])
 
 def get_additional_services(service_id):
@@ -607,15 +600,13 @@ def book_service_page():
                         START_TIME,
                         AMOUNT,
                         DEPOSIT,
-                        START_TIME,
                         END_TIME,
                         STATUS,
-                        SERVICE_DATE,
                         IS_RECURRING,
                         RECURRENCE_PATTERN,
                         COMMENTS,
                         SERVICE_NAME,
-                        BASE_SERVICE_COST  -- Add this column
+                        BASE_SERVICE_COST
                     ) VALUES (
                         :1,                -- SERVICE_ID
                         :2,                -- CUSTOMER_ID
@@ -625,14 +616,12 @@ def book_service_page():
                         :5,                -- START_TIME
                         :6,                -- AMOUNT
                         0,                 -- DEPOSIT
-                        :7,                -- START_TIME
-                        :8,                -- END_TIME
+                        :7,                -- END_TIME
                         'SCHEDULED',       -- STATUS
-                        :9,                -- SERVICE_DATE
-                        :10,               -- IS_RECURRING
-                        :11,               -- RECURRENCE_PATTERN
-                        :12,               -- COMMENTS
-                        :13,               -- SERVICE_NAME
+                        :8,                -- IS_RECURRING
+                        :9,                -- RECURRENCE_PATTERN
+                        :10,               -- COMMENTS
+                        :11,               -- SERVICE_NAME
                         :6                 -- BASE_SERVICE_COST (same as AMOUNT)
                     )
                     """
@@ -645,9 +634,7 @@ def book_service_page():
                         st.session_state.selected_date,         # SERVICE_DATE
                         st.session_state.selected_time,         # START_TIME
                         float(service['COST']),                 # AMOUNT
-                        st.session_state.selected_time,         # START_TIME
                         end_time,                               # END_TIME
-                        st.session_state.selected_date,         # SERVICE_DATE
                         st.session_state.is_recurring,          # IS_RECURRING
                         st.session_state.recurrence_pattern,    # RECURRENCE_PATTERN
                         st.session_state.booking_notes,         # COMMENTS
