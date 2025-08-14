@@ -117,11 +117,9 @@ def register_portal_user(customer_id: int, email: str, password_hash: str) -> Op
         CUSTOMER_ID,
         EMAIL,
         PASSWORD_HASH,
-        IS_ACTIVE,
-        CREATED_AT,
-        MODIFIED_AT
+        IS_ACTIVE
     )
-    VALUES (?, ?, ?, TRUE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())
+    VALUES (?, ?, ?, TRUE)
     """
     try:
         snowflake_conn.execute_query(portal_query, [
@@ -276,9 +274,9 @@ def register_customer_page():
                 portal_query = """
                 INSERT INTO OPERATIONAL.BARBER.CUSTOMER_PORTAL_USERS (
                     CUSTOMER_ID, EMAIL, PASSWORD_HASH,
-                    IS_ACTIVE, CREATED_AT
+                    IS_ACTIVE
                 )
-                VALUES (?, ?, ?, TRUE, CURRENT_TIMESTAMP())
+                VALUES (?, ?, ?, TRUE)
                 """
                 snowflake_conn.execute_query(portal_query, [
                     customer_id, email, hash_password(password)
