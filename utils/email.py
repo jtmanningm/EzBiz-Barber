@@ -76,10 +76,14 @@ def send_email(
     try:
         # Validate configuration
         if not st.secrets.get("mailgun", {}).get("api_key"):
-            return EmailStatus(False, "Mailgun API key missing", None)
+            error_msg = "Mailgun API key missing from secrets"
+            log_email(to_email, subject, False, error_msg)
+            return EmailStatus(False, error_msg, None)
         
         if not st.secrets.get("mailgun", {}).get("domain"):
-            return EmailStatus(False, "Mailgun domain missing", None)
+            error_msg = "Mailgun domain missing from secrets"
+            log_email(to_email, subject, False, error_msg)
+            return EmailStatus(False, error_msg, None)
             
         # Validate email
         if not to_email or not validate_email(to_email):
@@ -87,25 +91,27 @@ def send_email(
             log_email(to_email, subject, False, error_msg)
             return EmailStatus(False, error_msg, None)
 
-        # Set correct sender format
-        sender = "EZ Biz <noreply@joinezbiz.com>"
+        # Get domain from secrets and set sender format
+        mailgun_domain = st.secrets.mailgun.domain
+        sender = f"EZ Biz <noreply@{mailgun_domain}>"
 
         # Debug logging
         if st.session_state.get('debug_mode'):
             print(f"Sending email to: {to_email}")
             print(f"Subject: {subject}")
             print(f"From: {sender}")
-
+            print(f"Domain: {mailgun_domain}")
+        
         # Send email using Mailgun
         response = requests.post(
-            f"https://api.mailgun.net/v3/joinezbiz.com/messages",  # Using main domain
+            f"https://api.mailgun.net/v3/{mailgun_domain}/messages",
             auth=("api", st.secrets.mailgun.api_key),
             data={
                 "from": sender,
                 "to": [to_email],
                 "subject": subject,
                 "text": content,
-                "h:Reply-To": business_info.get('EMAIL_ADDRESS', 'noreply@joinezbiz.com')
+                "h:Reply-To": business_info.get('EMAIL_ADDRESS', f'noreply@{mailgun_domain}')
             }
         )
         
@@ -114,7 +120,18 @@ def send_email(
             log_email(to_email, subject, True)
             return EmailStatus(True, "Email sent successfully", email_id)
         else:
-            error_msg = f"Failed to send email. Status code: {response.status_code}. Response: {response.text}"
+            # Provide specific error messages for common issues
+            if response.status_code == 401:
+                error_msg = f"Mailgun authentication failed (401). Check API key and domain authorization. Domain: {mailgun_domain}"
+            elif response.status_code == 402:
+                error_msg = f"Mailgun payment required (402). Check account billing status."
+            elif response.status_code == 403:
+                error_msg = f"Mailgun forbidden (403). Domain may not be verified or sender not authorized."
+            elif response.status_code == 400:
+                error_msg = f"Mailgun bad request (400). Check email format and parameters. Response: {response.text}"
+            else:
+                error_msg = f"Failed to send email. Status code: {response.status_code}. Response: {response.text}"
+            
             log_email(to_email, subject, False, error_msg)
             return EmailStatus(False, error_msg, None)
             
