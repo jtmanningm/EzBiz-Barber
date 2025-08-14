@@ -1200,6 +1200,10 @@ def display_employee_assignment_dialog(transaction_id: int) -> None:
                     if st.form_submit_button("✅ Assign Employee", type="primary", use_container_width=True):
                         if selected_employee_name:
                             employee_id = employee_options[selected_employee_name]
+                            # Ensure employee_id is an integer, not a dict
+                            if isinstance(employee_id, dict):
+                                employee_id = employee_id.get('EMPLOYEE_ID')
+                            employee_id = int(employee_id)
                             if assign_employee_to_transaction(transaction_id, employee_id, assignment_notes):
                                 st.success(f"Employee {selected_employee_name} assigned successfully!")
                                 st.session_state.show_employee_assign = None
